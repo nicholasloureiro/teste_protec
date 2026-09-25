@@ -18,3 +18,11 @@ Funcionalidade: Tela para converter planilha em PDF
     Dado um arquivo "dados.txt"
     Quando eu enviar a planilha pela tela
     Então a tela mostra o erro "Formato não suportado"
+
+  Cenário: Por padrão a tela só abre neste computador
+    Quando eu iniciar a tela sem opções
+    Então ela aceita conexões apenas de "127.0.0.1"
+
+  Cenário: Liberar a tela na rede local para acessar pelo celular
+    Quando eu iniciar a tela com a opção "--rede"
+    Então ela aceita conexões apenas de "0.0.0.0"

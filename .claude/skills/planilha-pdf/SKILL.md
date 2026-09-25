@@ -12,6 +12,7 @@ Decisões de arquitetura: `docs/adr/0001-conversor-planilha-pdf.md`. Leia antes 
 ```bash
 uv sync
 uv run planilha-pdf-tela                      # tela em http://localhost:8000
+uv run planilha-pdf-tela --rede               # libera na rede local (celular): http://<ip-da-máquina>:8000
 uv run planilha-pdf arquivo.xlsx -o saida.pdf -t "Título"   # terminal
 uv run python exemplos/gerar_planilha_teste.py              # recria exemplos/cobrancas_teste.xlsx
 ```
@@ -46,4 +47,6 @@ uv run python exemplos/gerar_planilha_teste.py              # recria exemplos/co
   Se aparecerem quadrados no PDF, registre uma TTF (ex.: DejaVuSans).
 - **Planilhas com fórmulas:** lemos com `data_only=True`, que usa o valor salvo pelo Excel. Arquivo gerado por
   script e nunca aberto no Excel pode trazer fórmulas com valor vazio.
+- **Celular não abre a tela:** sem `--rede` o servidor escuta só em 127.0.0.1. Com `--rede`, confira se o celular
+  está no mesmo Wi-Fi (não nos dados móveis) e se o firewall (`ufw`) não bloqueia a porta 8000.
 - Dados de teste são **fictícios**; nunca versione planilha real de clientes (`*.pdf` já está no `.gitignore`).

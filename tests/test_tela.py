@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from pypdf import PdfReader
 from pytest_bdd import parsers, scenarios, then, when
 
-from planilha_pdf.web import app
+from planilha_pdf.web import app, endereco
 
 scenarios("features/tela.feature")
 
@@ -49,3 +49,18 @@ def mostra_erro(contexto, mensagem):
     r = contexto["resposta"]
     assert r.status_code == 400
     assert mensagem in r.json()["erro"]
+
+
+@when("eu iniciar a tela sem opções")
+def iniciar_sem_opcoes(contexto):
+    contexto["host"], _ = endereco([])
+
+
+@when(parsers.parse('eu iniciar a tela com a opção "{opcao}"'))
+def iniciar_com_opcao(contexto, opcao):
+    contexto["host"], _ = endereco([opcao])
+
+
+@then(parsers.parse('ela aceita conexões apenas de "{host}"'))
+def aceita_de(contexto, host):
+    assert contexto["host"] == host

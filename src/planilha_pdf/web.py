@@ -1,5 +1,7 @@
 """Tela web: envia a planilha e baixa o PDF."""
 
+import argparse
+import socket
 import tempfile
 from pathlib import Path
 
@@ -36,8 +38,31 @@ async def converter(arquivo: UploadFile, titulo: str = Form("")):
                     headers={"Content-Disposition": f'attachment; filename="{saida.name}"'})
 
 
+def endereco(argv: list[str] | None = None) -> tuple[str, int]:
+    """Lê as opções da linha de comando e devolve (host, porta)."""
+    parser = argparse.ArgumentParser(description="Tela web do conversor de planilha para PDF.")
+    parser.add_argument("--rede", action="store_true",
+                        help="aceita conexões de outros aparelhos da rede local (ex.: celular)")
+    parser.add_argument("--porta", type=int, default=8000)
+    args = parser.parse_args(argv)
+    return ("0.0.0.0" if args.rede else "127.0.0.1"), args.porta
+
+
+def ip_local() -> str:
+    """IP deste computador na rede local (o da interface que sai para a internet)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            s.connect(("10.255.255.255", 1))
+            return s.getsockname()[0]
+        except OSError:
+            return "127.0.0.1"
+
+
 def main() -> None:
     import uvicorn
 
-    print("Abra http://localhost:8000 no navegador")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    host, porta = endereco()
+    print(f"Neste computador: http://localhost:{porta}")
+    if host == "0.0.0.0":
+        print(f"No celular (mesma rede Wi-Fi): http://{ip_local()}:{porta}")
+    uvicorn.run(app, host=host, port=porta)

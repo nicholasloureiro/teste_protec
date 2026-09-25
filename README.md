@@ -28,6 +28,14 @@ uv run planilha-pdf-tela
 
 Abra http://localhost:8000, escolha ou arraste a planilha, informe um título (opcional) e clique em **Gerar PDF**.
 
+Para acessar pelo celular (mesma rede Wi-Fi), inicie com `--rede`; o endereço aparece no terminal:
+
+```bash
+uv run planilha-pdf-tela --rede      # ex.: http://10.10.1.140:8000
+```
+
+A tela não tem login: use `--rede` só em rede confiável.
+
 Para testar, use a planilha de exemplo `exemplos/cobrancas_teste.xlsx` (dados fictícios, abas Agosto e Setembro de 2026).
 Para gerá-la de novo: `uv run python exemplos/gerar_planilha_teste.py`.
 
