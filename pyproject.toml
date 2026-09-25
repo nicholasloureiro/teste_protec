@@ -1,0 +1,27 @@
+[project]
+name = "planilha-pdf"
+version = "0.1.0"
+description = "Converte planilhas de cobrança (.xlsx/.csv) em relatórios PDF"
+readme = "README.md"
+authors = [
+    { name = "Decode Dev", email = "dev@decodedata.com.br" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "openpyxl>=3.1.5",
+    "reportlab>=5.0.1",
+]
+
+[project.scripts]
+planilha-pdf = "planilha_pdf:main"
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pypdf>=6.19.0",
+    "pytest>=9.1.1",
+    "pytest-bdd>=8.1.0",
+]
