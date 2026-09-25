@@ -20,7 +20,18 @@ Requer [uv](https://docs.astral.sh/uv/) e Python 3.10+.
 uv sync
 ```
 
-### Uso
+### Uso pela tela
+
+```bash
+uv run planilha-pdf-tela
+```
+
+Abra http://localhost:8000, escolha ou arraste a planilha, informe um título (opcional) e clique em **Gerar PDF**.
+
+Para testar, use a planilha de exemplo `exemplos/cobrancas_teste.xlsx` (dados fictícios, abas Agosto e Setembro de 2026).
+Para gerá-la de novo: `uv run python exemplos/gerar_planilha_teste.py`.
+
+### Uso pelo terminal
 
 ```bash
 uv run planilha-pdf cobrancas.xlsx                                   # gera cobrancas.pdf
@@ -48,10 +59,18 @@ uv run pytest
 
 ```
 .
-├── src/planilha_pdf/__init__.py       # leitura da planilha, geração do PDF e CLI
+├── src/planilha_pdf/
+│   ├── __init__.py                    # leitura da planilha, geração do PDF e CLI
+│   ├── web.py                         # tela web (FastAPI)
+│   └── tela.html                      # página da tela
+├── exemplos/
+│   ├── cobrancas_teste.xlsx           # planilha fictícia para testes
+│   └── gerar_planilha_teste.py        # gera a planilha de teste
 └── tests/
-    ├── features/gerar_pdf.feature     # cenários de aceite (Gherkin pt-BR)
-    └── test_gerar_pdf.py              # implementação dos passos
+    ├── features/                      # cenários de aceite (Gherkin pt-BR)
+    ├── conftest.py                    # passos compartilhados
+    ├── test_gerar_pdf.py
+    └── test_tela.py
 ```
 
 ## Como contribuir

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planilha → PDF</title>
+<style>
+  :root { --azul: #1f3b57; --borda: #c8d0d8; --fundo: #f2f5f8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--fundo); color: #1b2530;
+         min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  main { background: #fff; width: 100%; max-width: 480px; padding: 32px; border-radius: 12px;
+         box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  h1 { margin: 0 0 4px; font-size: 1.4rem; color: var(--azul); }
+  p.sub { margin: 0 0 24px; color: #5b6875; }
+  label.area { display: block; border: 2px dashed var(--borda); border-radius: 10px; padding: 32px 16px;
+               text-align: center; cursor: pointer; transition: .15s; }
+  label.area:hover, label.area.arrastando { border-color: var(--azul); background: #f7f9fb; }
+  label.area strong { color: var(--azul); }
+  #nome { margin-top: 8px; font-size: .9rem; color: #5b6875; word-break: break-all; }
+  input[type=file] { display: none; }
+  .campo { margin-top: 16px; }
+  .campo label { display: block; font-size: .9rem; margin-bottom: 4px; }
+  .campo input { width: 100%; padding: 10px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; }
+  button { margin-top: 20px; width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--azul);
+           color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #msg { margin-top: 16px; font-size: .95rem; min-height: 1.2em; }
+  #msg.erro { color: #b42318; }
+  #msg.ok { color: #067647; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Planilha → PDF</h1>
+  <p class="sub">Envie uma planilha de cobrança (.xlsx ou .csv) e baixe o relatório em PDF.</p>
+  <form id="form">
+    <label class="area" id="area">
+      <strong>Clique para escolher</strong> ou arraste a planilha aqui
+      <div id="nome"></div>
+      <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xlsm,.csv">
+    </label>
+    <div class="campo">
+      <label for="titulo">Título do relatório (opcional)</label>
+      <input id="titulo" name="titulo" placeholder="Ex.: Cobrança Outubro/2026">
+    </div>
+    <button id="botao" disabled>Gerar PDF</button>
+    <div id="msg"></div>
+  </form>
+</main>
+<script>
+  const area = document.getElementById("area"), input = document.getElementById("arquivo"),
+        nome = document.getElementById("nome"), botao = document.getElementById("botao"),
+        msg = document.getElementById("msg");
+
+  function escolhido() {
+    const f = input.files[0];
+    nome.textContent = f ? f.name : "";
+    botao.disabled = !f;
+    msg.textContent = ""; msg.className = "";
+  }
+  input.addEventListener("change", escolhido);
+  ["dragover", "dragenter"].forEach(e => area.addEventListener(e, ev => { ev.preventDefault(); area.classList.add("arrastando"); }));
+  ["dragleave", "drop"].forEach(e => area.addEventListener(e, () => area.classList.remove("arrastando")));
+  area.addEventListener("drop", ev => { ev.preventDefault(); input.files = ev.dataTransfer.files; escolhido(); });
+
+  document.getElementById("form").addEventListener("submit", async ev => {
+    ev.preventDefault();
+    botao.disabled = true; botao.textContent = "Gerando…"; msg.textContent = ""; msg.className = "";
+    try {
+      const r = await fetch("/converter", { method: "POST", body: new FormData(ev.target) });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      const blob = await r.blob();
+      const arquivo = /filename="(.+)"/.exec(r.headers.get("content-disposition"))?.[1] || "relatorio.pdf";
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: arquivo });
+      a.click(); URL.revokeObjectURL(a.href);
+      msg.textContent = `PDF gerado: ${arquivo}`; msg.className = "ok";
+    } catch (e) {
+      msg.textContent = e.message || "Erro ao gerar o PDF."; msg.className = "erro";
+    } finally {
+      botao.disabled = !input.files[0]; botao.textContent = "Gerar PDF";
+    }
+  });
+</script>
+</body>
+</html>
