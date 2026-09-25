@@ -5,13 +5,15 @@ description: Converter planilhas de cobrança (.xlsx/.xlsm/.csv) em relatório P
 
 # Planilha → PDF (sistema de cobrança)
 
-Decisões de arquitetura: `docs/adr/0001-conversor-planilha-pdf.md`. Leia antes de trocar biblioteca ou estrutura.
+Decisões de arquitetura em `docs/adr/` (0001 conversor, 0002 Postgres). Leia antes de trocar biblioteca ou estrutura.
 
 ## Usar
 
 ```bash
 uv sync
-uv run planilha-pdf-tela                      # tela em http://localhost:8000
+docker compose up -d --build                  # Postgres (porta 5440) + tela em http://localhost:8000, guardando no banco
+docker compose exec postgres psql -U cobranca -d cobranca    # ver os dados guardados
+uv run planilha-pdf-tela                      # tela sem banco (sem DATABASE_URL não guarda nada)
 uv run planilha-pdf-tela --rede               # libera na rede local (celular): http://<ip-da-máquina>:8000
 uv run planilha-pdf arquivo.xlsx -o saida.pdf -t "Título"   # terminal
 uv run python exemplos/gerar_planilha_teste.py              # recria exemplos/cobrancas_teste.xlsx
@@ -25,7 +27,7 @@ uv run python exemplos/gerar_planilha_teste.py              # recria exemplos/co
 3. **Olhe o PDF**, não só os testes: gere a partir de `exemplos/cobrancas_teste.xlsx` e renderize
    (`pdftoppm -png -r 60 -f 1 -l 1 saida.pdf pag`) para conferir visualmente. `pypdf` extrai texto
    invisível — teste passando não prova que está legível.
-4. Se mexeu na tela, suba com `uv run planilha-pdf-tela` e teste com
+4. Se mexeu na tela, suba com `docker compose up -d --build` e teste com
    `curl -F arquivo=@exemplos/cobrancas_teste.xlsx localhost:8000/converter -o t.pdf`.
 5. Atualize o README, commit e `git push` para `origin main`
    (https://github.com/nicholasloureiro/teste_protec).
@@ -35,7 +37,10 @@ uv run python exemplos/gerar_planilha_teste.py              # recria exemplos/co
 - `src/planilha_pdf/__init__.py` — `ler_planilha` (abas → linhas), `formatar` (datas dd/mm/aaaa, números 1.234,56), `gerar_pdf`, CLI.
 - `src/planilha_pdf/web.py` — FastAPI: `GET /` (tela) e `POST /converter` (multipart `arquivo`, `titulo`) → PDF ou `400 {"erro": ...}`.
 - `src/planilha_pdf/tela.html` — página única, HTML/CSS/JS puro, sem build.
+- `src/planilha_pdf/banco.py` — esquema (`conversoes`, `linhas_planilha` com `jsonb`), `salvar_conversao`, `historico`. SQL direto com psycopg 3.
+- `web.py` também expõe `GET /historico` → `{"ativo": bool, "conversoes": [...]}`.
 - `tests/conftest.py` — fixture `contexto` e passos `Dado` compartilhados.
+- `tests/test_banco.py` — sobe Postgres real com testcontainers (precisa do Docker); não use mock de banco.
 
 ## Armadilhas já encontradas
 
@@ -49,4 +54,8 @@ uv run python exemplos/gerar_planilha_teste.py              # recria exemplos/co
   script e nunca aberto no Excel pode trazer fórmulas com valor vazio.
 - **Celular não abre a tela:** sem `--rede` o servidor escuta só em 127.0.0.1. Com `--rede`, confira se o celular
   está no mesmo Wi-Fi (não nos dados móveis) e se o firewall (`ufw`) não bloqueia a porta 8000.
+- **Mudança de esquema:** o esquema é `CREATE ... IF NOT EXISTS`, então alterar uma tabela existente não tem
+  efeito sozinho. Escreva um `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` no `ESQUEMA` (sem ferramenta de migração, ADR 0002).
+- **`pkill -f planilha-pdf-tela`** mata o próprio shell que rodou o comando (a linha contém o padrão). Pare a tela
+  pelo PID (`ss -ltnp | grep 8000`) ou com `docker compose down`.
 - Dados de teste são **fictícios**; nunca versione planilha real de clientes (`*.pdf` já está no `.gitignore`).

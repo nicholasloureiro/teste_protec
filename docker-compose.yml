@@ -1,0 +1,29 @@
+# Ambiente local: Postgres + tela. Uso: docker compose up -d  →  http://localhost:8000
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cobranca
+      POSTGRES_USER: cobranca
+      POSTGRES_PASSWORD: cobranca_local   # só para desenvolvimento local
+    ports:
+      - "127.0.0.1:5440:5432"
+    volumes:
+      - dados_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cobranca -d cobranca"]
+      interval: 2s
+      retries: 15
+
+  tela:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://cobranca:cobranca_local@postgres:5432/cobranca
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  dados_postgres:

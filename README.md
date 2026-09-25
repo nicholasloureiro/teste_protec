@@ -20,11 +20,25 @@ Requer [uv](https://docs.astral.sh/uv/) e Python 3.10+.
 uv sync
 ```
 
-### Uso pela tela
+### Uso pela tela (com Postgres)
+
+Sobe o Postgres e a tela juntos; cada conversão fica guardada no banco e aparece em "Últimas conversões":
+
+```bash
+docker compose up -d --build        # http://localhost:8000  (Postgres local na porta 5440)
+docker compose exec postgres psql -U cobranca -d cobranca   # consultar os dados
+```
+
+Sem Docker, a tela roda sem banco (não guarda nada), ou com um Postgres seu via `DATABASE_URL`
+(veja `.env.example`):
 
 ```bash
 uv run planilha-pdf-tela
+DATABASE_URL=postgresql://... uv run planilha-pdf-tela
 ```
+
+O que é guardado: tabela `conversoes` (arquivo, título, data, nº de linhas) e `linhas_planilha`
+(cada linha da planilha em `jsonb`). Detalhes em [`docs/adr/0002`](docs/adr/0002-guardar-conversoes-no-postgres.md).
 
 Abra http://localhost:8000, escolha ou arraste a planilha, informe um título (opcional) e clique em **Gerar PDF**.
 
@@ -66,7 +80,8 @@ CSV com separador `;`, `,` ou tab é detectado automaticamente.
 
 ### Testes
 
-Os critérios de aceite estão em português em `tests/features/gerar_pdf.feature`.
+Os critérios de aceite estão em português em `tests/features/`. Os testes do banco sobem um Postgres
+descartável automaticamente (precisa do Docker rodando).
 
 ```bash
 uv run pytest
@@ -82,10 +97,12 @@ evolução está no skill [`.claude/skills/planilha-pdf`](.claude/skills/planilh
 ├── .claude/skills/planilha-pdf/       # skill: usar e evoluir o conversor
 ├── .claude/skills/deploy-azure/       # skill: publicar no Azure Container Apps (/deploy-azure)
 ├── Dockerfile                         # imagem da tela web
+├── docker-compose.yml                 # ambiente local: Postgres + tela
 ├── docs/adr/                          # registros de decisão de arquitetura
 ├── src/planilha_pdf/
 │   ├── __init__.py                    # leitura da planilha, geração do PDF e CLI
 │   ├── web.py                         # tela web (FastAPI)
+│   ├── banco.py                       # gravação e histórico no Postgres
 │   └── tela.html                      # página da tela
 ├── exemplos/
 │   ├── cobrancas_teste.xlsx           # planilha fictícia para testes

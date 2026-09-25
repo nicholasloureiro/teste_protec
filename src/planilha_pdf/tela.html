@@ -28,6 +28,12 @@
   #msg { margin-top: 16px; font-size: .95rem; min-height: 1.2em; }
   #msg.erro { color: #b42318; }
   #msg.ok { color: #067647; }
+  #historico { margin-top: 28px; border-top: 1px solid var(--borda); padding-top: 16px; }
+  #historico h2 { font-size: 1rem; margin: 0 0 8px; color: var(--azul); }
+  #historico ul { list-style: none; margin: 0; padding: 0; font-size: .9rem; }
+  #historico li { padding: 8px 0; border-bottom: 1px solid #eef1f4; }
+  #historico li span { display: block; overflow-wrap: anywhere; }
+  #historico li span + span { color: #5b6875; font-size: .8rem; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -47,11 +53,32 @@
     <button id="botao" disabled>Gerar PDF</button>
     <div id="msg"></div>
   </form>
+  <section id="historico" hidden>
+    <h2>Últimas conversões</h2>
+    <ul id="lista"></ul>
+  </section>
 </main>
 <script>
   const area = document.getElementById("area"), input = document.getElementById("arquivo"),
         nome = document.getElementById("nome"), botao = document.getElementById("botao"),
         msg = document.getElementById("msg");
+
+  async function carregarHistorico() {
+    try {
+      const h = await (await fetch("/historico")).json();
+      const secao = document.getElementById("historico"), lista = document.getElementById("lista");
+      secao.hidden = !h.ativo;
+      lista.replaceChildren(...h.conversoes.map(c => {
+        const li = document.createElement("li"), nome = document.createElement("span"), info = document.createElement("span");
+        nome.textContent = c.titulo ? `${c.titulo} (${c.arquivo})` : c.arquivo;
+        info.textContent = `${c.linhas} linhas · ${new Date(c.criado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`;
+        li.append(nome, info);
+        return li;
+      }));
+      if (h.ativo && !h.conversoes.length) lista.innerHTML = "<li><span>Nenhuma conversão ainda.</span></li>";
+    } catch { /* histórico é opcional */ }
+  }
+  carregarHistorico();
 
   function escolhido() {
     const f = input.files[0];
@@ -75,6 +102,7 @@
       const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: arquivo });
       a.click(); URL.revokeObjectURL(a.href);
       msg.textContent = `PDF gerado: ${arquivo}`; msg.className = "ok";
+      carregarHistorico();
     } catch (e) {
       msg.textContent = e.message || "Erro ao gerar o PDF."; msg.className = "erro";
     } finally {

@@ -67,6 +67,29 @@ az containerapp show -n <app> -g <rg> --query properties.configuration.ingress.f
 
 `containerapp up --source .` usa o `Dockerfile` da raiz, cria o registry e o ambiente se faltarem, e imprime a URL.
 
+## 3b. Banco Postgres (primeiro deploy)
+
+Sem `DATABASE_URL` a tela funciona mas não guarda nada (ADR 0002). Verifique se já existe:
+`az postgres flexible-server show -g <rg> -n <app>-pg --query state -o tsv`.
+
+Se não existe, avise o custo (Flexible Server Burstable B1ms + 32 GB fica na casa de US$ 15–20/mês; confira na
+calculadora do Azure) e **peça confirmação**. Então:
+
+```bash
+SENHA=$(openssl rand -base64 24 | tr -d '/+=')
+az postgres flexible-server create -g <rg> -n <app>-pg -l <região> \
+  --tier Burstable --sku-name Standard_B1ms --storage-size 32 --version 16 \
+  --admin-user cobranca --admin-password "$SENHA" --database-name cobranca \
+  --public-access 0.0.0.0          # só serviços do Azure; nada da internet
+az containerapp secret set -n <app> -g <rg> \
+  --secrets database-url="postgresql://cobranca:$SENHA@<app>-pg.postgres.database.azure.com:5432/cobranca?sslmode=require"
+az containerapp update -n <app> -g <rg> --set-env-vars DATABASE_URL=secretref:database-url
+```
+
+- A senha fica **só** no secret do Container App. Não escreva no chat, README, commit ou arquivo.
+- As tabelas são criadas sozinhas quando a tela inicia. Confira nos logs que não aparece
+  "DATABASE_URL não definida".
+
 ## 4. Login obrigatório (primeiro deploy)
 
 A tela não tem autenticação própria (ADR 0001). **Antes de passar a URL para alguém**, ative o login da
@@ -88,6 +111,7 @@ az containerapp logs show -n <app> -g <rg> --tail 20
 ```
 
 - `200` sem estar logado significa que o login **não** está ativo: avise o usuário.
+- Logs com "DATABASE_URL não definida" = o banco não está ligado e nada está sendo guardado.
 - Peça ao usuário para abrir a URL no navegador, entrar com a conta da empresa e converter
   `exemplos/cobrancas_teste.xlsx`. Não dá para testar o fluxo logado via curl.
 
@@ -103,7 +127,9 @@ az containerapp logs show -n <app> -g <rg> --tail 20
 - **Imagem roda local mas não sobe no Azure:** confira `--target-port 8000` e que o CMD usa `--rede`
   (sem ele o uvicorn escuta só em 127.0.0.1 e o ingress não alcança).
 - **Mudou dependência e o build quebrou:** o Dockerfile usa `uv sync --frozen`; rode `uv lock` e commite o `uv.lock`.
-- **Desfazer/limpar tudo:** `az group delete -n <rg>` apaga app, registry e ambiente. É irreversível:
+- **Erro 503 "não foi possível guardar no banco":** veja `az containerapp logs show`; em geral é senha/URL errada
+  no secret ou `sslmode=require` faltando.
+- **Desfazer/limpar tudo:** `az group delete -n <rg>` apaga app, registry, ambiente **e o banco com os dados**. É irreversível:
   só com pedido explícito do usuário.
 - **Planilhas grandes:** não há limite de upload no código; o ingress do Azure aceita o request inteiro.
   Se virar problema, limitar em `web.py`.
