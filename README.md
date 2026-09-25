@@ -39,6 +39,15 @@ A tela não tem login: use `--rede` só em rede confiável.
 Para testar, use a planilha de exemplo `exemplos/cobrancas_teste.xlsx` (dados fictícios, abas Agosto e Setembro de 2026).
 Para gerá-la de novo: `uv run python exemplos/gerar_planilha_teste.py`.
 
+### Publicar no Azure
+
+A imagem é gerada pelo `Dockerfile` da raiz. O passo a passo (Azure Container Apps + login Microsoft) está no
+skill [`deploy-azure`](.claude/skills/deploy-azure/SKILL.md); no Claude Code, rode `/deploy-azure`.
+
+```bash
+docker build -t planilha-pdf . && docker run --rm -p 8000:8000 planilha-pdf   # testar o container localmente
+```
+
 ### Uso pelo terminal
 
 ```bash
@@ -70,7 +79,9 @@ evolução está no skill [`.claude/skills/planilha-pdf`](.claude/skills/planilh
 
 ```
 .
-├── .claude/skills/planilha-pdf/       # skill do Claude Code para este projeto
+├── .claude/skills/planilha-pdf/       # skill: usar e evoluir o conversor
+├── .claude/skills/deploy-azure/       # skill: publicar no Azure Container Apps (/deploy-azure)
+├── Dockerfile                         # imagem da tela web
 ├── docs/adr/                          # registros de decisão de arquitetura
 ├── src/planilha_pdf/
 │   ├── __init__.py                    # leitura da planilha, geração do PDF e CLI
