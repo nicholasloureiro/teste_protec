@@ -57,8 +57,13 @@ uv run pytest
 
 ## Estrutura
 
+Decisões de arquitetura em [`docs/adr/`](docs/adr/). Para agentes (Claude Code), o passo a passo de uso e
+evolução está no skill [`.claude/skills/planilha-pdf`](.claude/skills/planilha-pdf/SKILL.md).
+
 ```
 .
+├── .claude/skills/planilha-pdf/       # skill do Claude Code para este projeto
+├── docs/adr/                          # registros de decisão de arquitetura
 ├── src/planilha_pdf/
 │   ├── __init__.py                    # leitura da planilha, geração do PDF e CLI
 │   ├── web.py                         # tela web (FastAPI)
